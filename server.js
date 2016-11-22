@@ -37,6 +37,7 @@ app.use((req, res, next) =>
 
 
 // handle other errors
+var debugging = process.env.DEBUGGING && process.env.DEBUGGING == 1;
 app.use((err, req, res, next) =>
 {
     var status = err.status || 500;
@@ -45,7 +46,10 @@ app.use((err, req, res, next) =>
     var response = {};
     response.error = err.name || "InternalServerError";
     response.message = err.message;
-    // response.stack = err.stack;
+    if (debugging)
+    {
+        response.stack = err.stack;
+    }
     response.validationErrors = {};
 
     if (err.name === "ValidationError")
