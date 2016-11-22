@@ -5,7 +5,8 @@ var BaseModel = require(path.join(__dirname, "base"));
 
 var UserSchema = new mongoose.Schema({
     username: { type: String, unique: true, required: "username is required." },
-    password: { type: String, required: "password is required." }
+    password: { type: String, required: "password is required." },
+    groups: { type: [String], required: false, default: [] }
 })
 
 var UserDocument = mongoose.model("User", UserSchema);
@@ -17,8 +18,7 @@ class User extends BaseModel
         super(params);
         this.username = params.username;
         this.password = params.password;
-
-        
+        this.groups = params.groups || [];
     }
 
     static get DataModel ()
@@ -57,7 +57,7 @@ class User extends BaseModel
     create ()
     {
         return this.hashPassword()
-        .then(() => this.create());
+        .then(() => super.create());
     }
 
     static findByUsername (username)

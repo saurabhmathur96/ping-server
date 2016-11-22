@@ -2,7 +2,10 @@ class BaseModel
 {
     constructor (params) 
     {
-        this._id = params._id || null;
+        if (params._id)
+        {
+            this._id = params._id;
+        }
     }
 
     get id ()
@@ -18,20 +21,21 @@ class BaseModel
 
     create () 
     {   
-        var DataModel = this.DataModel;
+        var DataModel = this.constructor.DataModel;
         return new DataModel(this).save()
-        .then((doc) => new this(doc));
+        .then((doc) => { this._id = doc._id; })
+        .then(() => Promise.resolve(this));
     }
 
     update (updates) 
     {
-        var DataModel = this.DataModel;
+        var DataModel = this.constructor.DataModel;
         return DataModel.findAndModify({ _id: this.id }, updates);
     }
 
     remove () 
     {
-        var DataModel = this.DataModel;
+        var DataModel = this.constructor.DataModel;
         return DataModel.remove({ _id: this.id });
     }
 
