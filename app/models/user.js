@@ -1,30 +1,23 @@
-var path = require("path");
 var bcrypt = require("bcrypt");
-var mongoose = require("mongoose");
-var BaseModel = require(path.join(__dirname, "base"));
 
-var UserSchema = new mongoose.Schema({
-    username: { type: String, unique: true, required: "username is required." },
-    password: { type: String, required: "password is required." },
-    groups: { type: [String], required: false, default: [] }
-})
-
-var UserDocument = mongoose.model("User", UserSchema);
-
-class User extends BaseModel
+class User
 {
     constructor (params)
     {
-        super(params);
+        if (params._id)
+        {
+            this._id = params._id;
+        }
         this.username = params.username;
         this.password = params.password;
-        this.groups = params.groups || [];
+        this.topics = params.topics || []; // Array of group ids.
     }
 
-    static get DataModel ()
+    get id ()
     {
-        return UserDocument;
+        return this._id;
     }
+
 
     hashPassword ()
     {
@@ -53,18 +46,6 @@ class User extends BaseModel
 
         return deferred.promise;
     }
-
-    create ()
-    {
-        return this.hashPassword()
-        .then(() => super.create());
-    }
-
-    static findByUsername (username)
-    {
-        return this.findOne({ username: username });
-    }
-
     
 }
 

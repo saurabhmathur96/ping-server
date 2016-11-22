@@ -1,5 +1,9 @@
 var expressJwt = require("express-jwt");
 var jwt = require("jsonwebtoken");
+var HttpStatus = require("http-status");
+var path = require("path");
+var AuthenticationError = require(path.join(__dirname, "..", "errors", "authentication"));
+
 
 class AuthenticationManager
 {
@@ -11,22 +15,29 @@ class AuthenticationManager
 
     signIn (user)
     {
-        return this.db.User.findByUsername(user.username)
-        .then((u) => u.validatePassword(user.password))
-        .then((valid) => 
+        return this.db.Users.byUsername(user.username)
+        .then((u) => 
+        {
+            if (u == null)
+            {
+                throw new AuthenticationError("Authentication failed.")
+            }
+            else
+            {
+                return [u, u.validatePassword(user.password)];
+            }
+        })                       
+        .then(([u, valid]) => 
         {
             if (valid)
             {
-                var payload = { id: user.id, username: user.username };
+                var payload = { id: u.id, username: u.username };
                 var token = jwt.sign(payload, this.secret, { expiresIn: 31536000 });
                 return Promise.resolve(token);
             }
             else
             {
-                var err = new Error("Authentication failed");
-                err.name = "AuthenticationError";
-                err.status = 403;
-                throw err;
+                throw new AuthenticationError("Authentication failed.");
             }
         });
 
@@ -36,9 +47,15 @@ class AuthenticationManager
     {
         var user = jwt.decode(token, this.secret);
 
-        return this.db.User.findByUsername(user.username)
+        return this.db.Users.byUsername(user.username)
         .then((u) =>
         {
+            if (u == null)
+            {
+                throw new AuthenticationError("Invalid token.");
+            }
+            
+            var payload = { id: u.id, username: u.username };
             var refreshedToken = jwt.sign(payload, this.secret, { expiresIn: 31536000 });
             return Promise.resolve(refreshedToken);
         });

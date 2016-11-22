@@ -1,7 +1,7 @@
 var path = require("path");
 var UserController = require(path.join(__dirname, "user"));
 var TokenController = require(path.join(__dirname, "token"));
-var NewsItemController = require(path.join(__dirname, "newsitem"));
+var TopicController = require(path.join(__dirname, "topic"));;
 
 var express = require("express");
 
@@ -16,23 +16,22 @@ module.exports = function (db, authenticationManager)
 
     // user routes
     var users = new UserController(db);
-    router.post("/users/", users.registerUser.bind(users));
-    router.get ("/users/:username", verify, users.fetchByUsername.bind(users));
+    router.post  ("/users",         users.registerUser.bind(users));
+    router.delete("/users", verify, users.deleteUser.bind(users));
+    
 
     // token authentication routes
     var tokens = new TokenController(db, authenticationManager);
-    router.post("/tokens", tokens.generateToken.bind(tokens));
+    router.post("/tokens",                 tokens.generateToken.bind(tokens));
     router.get ("/tokens/refresh", verify, tokens.refreshToken.bind(tokens));
 
-    // newsitems routes
-    router.use("/newsitems", verify);
-    
-    var newsitems = new NewsItemController(db);
-    router.get ("/newsitems", newsitems.fetchItems.bind(newsitems));
-    router.post("/newsitems", newsitems.addItem.bind(newsitems));
-    router.get ("/newsitems/:itemid", newsitems.fetchItemById.bind(newsitems));
-    
-
+    // topic routes
+    var topics = new TopicController(db);
+    router.post   ("/topics",                   verify, topics.createTopic.bind(topics));
+    router.get    ("/topics/:topicId",          verify, topics.getTopic.bind(topics));
+    router.delete ("/topics/:topicId",          verify, topics.deleteTopic.bind(topics));
+    router.post   ("/topics/:topicId/follow",   verify, topics.followTopic.bind(topics));
+    router.post   ("/topics/:topicId/unfollow", verify, topics.unfollowTopic.bind(topics));
 
     return router;
 

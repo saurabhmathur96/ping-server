@@ -1,3 +1,6 @@
+var path = require("path");
+var User = require(path.join(__dirname, "..", "models", "user"));
+
 class TokenController
 {
     constructor (db, authenticationManager) 
@@ -6,15 +9,19 @@ class TokenController
         this.authenticationManager = authenticationManager;
     }
 
-
+    //
+    // /tokens
     generateToken (req, res, next)
     {
-        var user = new this.db.User ({ username: req.body.username, password: req.body.password });
+        var user = new User({ username: req.body.username, password: req.body.password });
+        
         this.authenticationManager.signIn(user)
         .then((token) => res.json({ token: token }))
         .catch(next);
     }
 
+    //
+    // /tokens/refresh
     refreshToken (req, res, next)
     {
         this.authenticationManager.refreshToken(req.user)

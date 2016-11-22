@@ -8,7 +8,9 @@ mongoose.Promise = Promise;
 var dotenv = require("dotenv");
 dotenv.load({ silent: true });
 
-var Database = require(path.join(__dirname, "app", "models", "database"));
+var HttpStatus = require("http-status");
+
+var Database = require(path.join(__dirname, "app", "data", "database"));
 var db = new Database(process.env.MONGO_URI);
 
 var AuthenticationManager = require(path.join(__dirname, "app", "authentication", "manager"));
@@ -31,7 +33,7 @@ app.use((req, res, next) =>
 {
     var err = new Error("Not Found.");
     err.name = "NotFoundError";
-    err.status = 404;
+    err.status = HttpStatus.NOT_FOUND;
     next(err);
 });
 
@@ -40,27 +42,41 @@ app.use((req, res, next) =>
 var debugging = process.env.DEBUGGING && process.env.DEBUGGING == 1;
 app.use((err, req, res, next) =>
 {
-    var status = err.status || 500;
+    // Mongoose validation errors
+    err.validationErrors = {};
+    if (err.name === "ValidationError")
+    {
+        err.validationErrors = {};
+        for (var field in err.errors) 
+        {
+            err.validationErrors[field] = {};
+            err.validationErrors[field].type = err.errors[field].type;
+            err.validationErrors[field].message = err.errors[field].message;
+        }
+        err.status = HttpStatus.BAD_REQUEST;
+    }
+
+    // Duplicate key error
+    else if (err.name === "MongoError" && err.code === 11000)
+    {
+        err.name = "DuplicateError"
+        err.message = "record already exists.";
+        err.status = HttpStatus.BAD_REQUEST;
+    }
+
+    var status = err.status || HttpStatus.INTERNAL_SERVER_ERROR;
     res.status(status);
 
     var response = {};
     response.error = err.name || "InternalServerError";
     response.message = err.message;
+    response.validationErrors = err.validationErrors;
+
     if (debugging)
     {
         response.stack = err.stack;
     }
-    response.validationErrors = {};
-
-    if (err.name === "ValidationError")
-    {
-        for (field in err.errors) 
-        {
-            response.errors[field] = {};
-            response.errors[field].type = err.errors[field].type;
-            response.errors[field].message = err.errors[field].message;
-        }
-    }
+    
 
     res.json(response);
 });
